@@ -11,9 +11,6 @@ await MainAsync();
 // Asynchronous main method
 async Task MainAsync()
 {
-    // Set the total number of orders
-    const int orderCount = 1000000;
-
     // Get the current directory
     var directory = Directory.GetCurrentDirectory();
 
@@ -22,22 +19,17 @@ async Task MainAsync()
 
     try
     {
-        // List to hold orders
-        List<Order> orders;
-
         // Check if the file exists
-        if (FileExists(filePath))
+        if (!FileExists(filePath))
         {
-            // If the file exists, read orders from the file
-            orders = new List<Order>(CSVHelper.ReadCsvFile<Order>(filePath));
-        }
-        else
-        {
-            // If the file does not exist, generate and save new orders
-            Console.WriteLine("File does not exist. Generating and saving a new file.");
+            // If the file does not exist, generate and save new file for test source
+            const int orderCount = 1000000;
             await GenerateOrders(orderCount, filePath);
-            orders = new List<Order>(CSVHelper.ReadCsvFile<Order>(filePath));
+            Console.WriteLine("File did not exist. Generated and saved a new file.");
         }
+
+        // Create a list of orders from source
+        List<Order> orders = new(CSVHelper.ReadCsvFile<Order>(filePath));
 
         // Get orders due today
         var ordersDueToday = GetOrdersDueToday(orders).ToList();
@@ -52,7 +44,7 @@ async Task MainAsync()
 }
 
 // Method to filter and retrieve orders due today
-IEnumerable<Order> GetOrdersDueToday(List<Order> allOrders)
+IEnumerable<Order> GetOrdersDueToday(IEnumerable<Order> allOrders)
 {
     // Get today's date
     var today = DateTime.Today;
@@ -62,16 +54,19 @@ IEnumerable<Order> GetOrdersDueToday(List<Order> allOrders)
         .Where(order => order.DueDate.Date == today)
         .ToList();
 
+    // return filtered orders as requested.
     return ordersDueToday;
 }
 
 // Method to process an individual order
 void ProcessOrders(ICollection orders)
 {
-    // Output the number of orders processed for expiry and total orders
+    // Output the number of orders processed for expiry
     Console.WriteLine($"{orders.Count} Orders processed for expiry");
 
     // Uncomment the following line to enqueue a background Hangfire job
+    // This would allow for keeping a history of processed orders and retrying if any failures occur
+    // Additional set up would be required for this including storage
     //foreach (var order in orders)
     //{
     //    BackgroundJob.Enqueue(() => ProcessOrder(order));
